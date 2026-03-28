@@ -84,7 +84,7 @@ const T = {
     },
 } as const;
 
-type Tokens = typeof T.dark;
+type Tokens = typeof T.dark | typeof T.light;
 
 /* ═══════════════════════════════════════════════════════════ */
 export default function LoginPage() {
