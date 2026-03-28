@@ -3,6 +3,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { ChatMessage, VerifyResult } from "@/app/types";
 import { verifyGhostAnswer } from "@/app/lib/verifyGhostAnswer";
 
+// ── PURE UTILITY (outside components — no stale closure risk) ─────────────────
+const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
 // ── TYPES ────────────────────────────────────────────────────────────────────
 interface AccessRow { user: string; time: string; connection: string; }
 interface EndpointRow { user: string; time: string; action: string; xfer: string; }
@@ -201,8 +204,6 @@ const IntroModal = ({ onDismiss }: IntroModalProps) => {
   const logRef = useRef<HTMLDivElement>(null);
   const idRef = useRef(0);
 
-  const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
-
   const addTyping = useCallback((): number => {
     const id = ++idRef.current;
     setMessages(m => [...m, { id, isTyping: true, text: "", show: true }]);
@@ -220,26 +221,33 @@ const IntroModal = ({ onDismiss }: IntroModalProps) => {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       await delay(600);
-      let tid = addTyping(); await delay(1300); removeTyping(tid);
+      if (cancelled) return;
+      let tid = addTyping(); await delay(1300); if (cancelled) return; removeTyping(tid);
       addCard("ghost41_id › BRIEFING", "Welcome, analyst. A security breach has occurred at NEUROLINK_SEC.");
       await delay(900);
-      tid = addTyping(); await delay(1100); removeTyping(tid);
+      if (cancelled) return;
+      tid = addTyping(); await delay(1100); if (cancelled) return; removeTyping(tid);
       addCard(undefined, "Sensitive data has been exfiltrated from the internal network. Your mission: identify the perpetrator using the logs.");
       await delay(800);
-      tid = addTyping(); await delay(1200); removeTyping(tid);
+      if (cancelled) return;
+      tid = addTyping(); await delay(1200); if (cancelled) return; removeTyping(tid);
       addCard("ghost41_id › INSTRUCTIONS", "Examine the Access Logs, Endpoint Logs, and VPN Network Logs on the main console.");
       await delay(800);
-      tid = addTyping(); await delay(1000); removeTyping(tid);
+      if (cancelled) return;
+      tid = addTyping(); await delay(1000); if (cancelled) return; removeTyping(tid);
       addCard(undefined, "Then open the ghost41_id terminal (floating icon, bottom-right) and answer my questions. You can retry each question as many times as you need.");
       await delay(600);
-      tid = addTyping(); await delay(900); removeTyping(tid);
+      if (cancelled) return;
+      tid = addTyping(); await delay(900); if (cancelled) return; removeTyping(tid);
       addCard("ghost41_id › QUERY", "Are you ready to begin the investigation?");
       await delay(300);
-      setShowBtn(true);
+      if (!cancelled) setShowBtn(true);
     })();
-  }, []);
+    return () => { cancelled = true; };
+  }, [addTyping, removeTyping, addCard]);
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -299,7 +307,12 @@ const GhostPanel = ({ open, onClose, qStatuses, onQStatusChange, onAllDone }: Gh
   const idRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const delay = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+  // FIX: stable refs for callbacks used inside async sequences
+  // so the async IIFE never captures a stale version
+  const onAllDoneRef = useRef(onAllDone);
+  const onQStatusChangeRef = useRef(onQStatusChange);
+  useEffect(() => { onAllDoneRef.current = onAllDone; }, [onAllDone]);
+  useEffect(() => { onQStatusChangeRef.current = onQStatusChange; }, [onQStatusChange]);
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -329,46 +342,41 @@ const GhostPanel = ({ open, onClose, qStatuses, onQStatusChange, onAllDone }: Gh
       await delay(700);
       removeTyping(tid);
 
-      addMsg(
-        "ghost41_id › VERDICT",
-        "✓ All confirmed. Breach fully reconstructed. Access level elevated."
-      );
-
-      onAllDone();
+      addMsg("ghost41_id › VERDICT", "✓ All confirmed. Breach fully reconstructed. Access level elevated.");
+      onAllDoneRef.current();
       return;
     }
 
     const q = QUESTIONS[idx];
     setAwaitingAnswer(true);
-
     addMsg("ghost41_id › QUERY", q.q);
 
     const id = ++idRef.current;
+    setMessages(m => [...m, { id, text: q.hint ?? "", isUser: false }]);
+  }, [addMsg, addTyping, removeTyping]);
 
-    const newMessage: ChatMessage = {
-      id,
-      text: q.hint ?? "", // 🔥 prevents undefined crash
-      isUser: false,
-    };
-
-    setMessages((m) => [...m, newMessage]);
-  }, [addMsg, addTyping, removeTyping, onAllDone]);
   useEffect(() => {
-    if (open && !started) {
-      setStarted(true);
-      (async () => {
-        await delay(400);
-        let tid = addTyping(); await delay(1400); removeTyping(tid);
-        addMsg(undefined, "Your mission: Examine the logs carefully. Cross-reference access, endpoint transfer, and VPN tunnel records to reconstruct the breach.");
-        await delay(700);
-        tid = addTyping(); await delay(900); removeTyping(tid);
-        addMsg(undefined, "Once you have analyzed the data — come back and tell me what you found.");
-        await delay(800);
-        tid = addTyping(); await delay(1100); removeTyping(tid);
-        askQuestion(0);
-      })();
-    }
-  }, [open, started]);
+    if (!open || started) return;
+    setStarted(true);
+
+    let cancelled = false;
+    (async () => {
+      await delay(400);
+      if (cancelled) return;
+      let tid = addTyping(); await delay(1400); if (cancelled) return; removeTyping(tid);
+      addMsg(undefined, "Your mission: Examine the logs carefully. Cross-reference access, endpoint transfer, and VPN tunnel records to reconstruct the breach.");
+      await delay(700);
+      if (cancelled) return;
+      tid = addTyping(); await delay(900); if (cancelled) return; removeTyping(tid);
+      addMsg(undefined, "Once you have analyzed the data — come back and tell me what you found.");
+      await delay(800);
+      if (cancelled) return;
+      tid = addTyping(); await delay(1100); if (cancelled) return; removeTyping(tid);
+      if (!cancelled) askQuestion(0);
+    })();
+
+    return () => { cancelled = true; };
+  }, [open, started, addTyping, removeTyping, addMsg, askQuestion]);
 
   const send = useCallback(async () => {
     if (done || !awaitingAnswer || !input.trim()) return;
@@ -377,12 +385,26 @@ const GhostPanel = ({ open, onClose, qStatuses, onQStatusChange, onAllDone }: Gh
     setAwaitingAnswer(false);
     addMsg(undefined, val, true);
     const q = QUESTIONS[qIdx];
+
     await delay(200);
-    const tid = addTyping(); await delay(600); removeTyping(tid);
-    const result: VerifyResult = await verifyGhostAnswer('task1', q.qId, val);
+    const tid = addTyping();
+    await delay(600);
+    removeTyping(tid);
+
+    // FIX: wrap network call in try/catch so the UI never silently freezes
+    let result: VerifyResult;
+    try {
+      result = await verifyGhostAnswer('task1', q.qId, val);
+    } catch (err) {
+      console.error("verifyGhostAnswer failed:", err);
+      addMsg(undefined, "✗ Network error. Please try again.");
+      setAwaitingAnswer(true);
+      return;
+    }
+
     if (result.correct) {
       addMsg(undefined, result.successMessage || `✓ Confirmed — ${result.displayAnswer}`);
-      onQStatusChange(qIdx, "ok");
+      onQStatusChangeRef.current(qIdx, "ok");
       const next = qIdx + 1;
       setQIdx(next);
       await delay(500);
@@ -392,7 +414,15 @@ const GhostPanel = ({ open, onClose, qStatuses, onQStatusChange, onAllDone }: Gh
       await delay(300);
       setAwaitingAnswer(true);
     }
-  }, [done, awaitingAnswer, input, qIdx, addMsg, addTyping, removeTyping, onQStatusChange, askQuestion]);
+  }, [done, awaitingAnswer, input, qIdx, addMsg, addTyping, removeTyping, askQuestion]);
+
+  // FIX: helper so the hint-message style condition has correct operator precedence
+  const isHintMsg = (msg: ChatMessage) =>
+    !msg.label && (
+      (msg.text?.startsWith("Cross") ?? false) ||
+      (msg.text?.startsWith("Check") ?? false) ||
+      (msg.text?.startsWith("Filter") ?? false)
+    );
 
   const dots = QUESTIONS.map((_, i) => {
     if (qStatuses[i] === "ok") return "done";
@@ -425,7 +455,14 @@ const GhostPanel = ({ open, onClose, qStatuses, onQStatusChange, onAllDone }: Gh
         ) : (
           <div key={msg.id} style={{ background: "#0e2236", border: "1px solid #1a3550", borderRadius: 6, padding: "12px 14px" }}>
             {msg.label && <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: 2, color: "#00d4c8", textTransform: "uppercase", marginBottom: 8, opacity: 0.8 }}>{msg.label}</div>}
-            <div style={{ fontSize: 12, color: "#c8dce8", lineHeight: 1.65, fontStyle: !msg.label && msg.text.startsWith("Cross") || msg.text.startsWith("Check") || msg.text.startsWith("Filter") ? "italic" : "normal", opacity: !msg.label && (msg.text.startsWith("Cross") || msg.text.startsWith("Check") || msg.text.startsWith("Filter")) ? 0.6 : 1 }}>{msg.text}</div>
+            {/* FIX: operator precedence corrected — isHintMsg() now evaluates correctly */}
+            <div style={{
+              fontSize: 12,
+              color: "#c8dce8",
+              lineHeight: 1.65,
+              fontStyle: isHintMsg(msg) ? "italic" : "normal",
+              opacity: isHintMsg(msg) ? 0.6 : 1,
+            }}>{msg.text}</div>
           </div>
         ))}
       </div>
@@ -473,7 +510,8 @@ export default function App() {
 
   const handleQStatus = useCallback((idx: number, s: QStatus) => {
     setQStatuses(prev => { const n = [...prev]; n[idx] = s; return n; });
-    setProgWidth(prev => prev + (100 / 3));
+    // FIX: cap at 100 so the progress bar never overflows
+    setProgWidth(prev => Math.min(100, prev + (100 / QUESTIONS.length)));
   }, []);
 
   const handleAllDone = useCallback(() => {
@@ -558,11 +596,28 @@ export default function App() {
           BREACH INVESTIGATION — NEUROLINK_SEC
         </div>
 
-        {/* LOG GRID */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 11 }}>
-          <LogTable title="Access Logs" data={ACCESS as AnyRow[]} cols={["user", "time", "connection"]} headers={["User", "Time", "Connection"]} gridCols="1.2fr 0.65fr 1.7fr" />
-          <LogTable title="Endpoint Logs" data={ENDPOINT as AnyRow[]} cols={["user", "time", "action", "xfer"]} headers={["User", "Time", "Action", "Transfer"]} gridCols="1.1fr 0.55fr 1.2fr 0.8fr" />
-          <LogTable title="VPN Network Logs" data={VPN as AnyRow[]} cols={["user", "time", "tunnel"]} headers={["User", "Time", "Tunnel"]} gridCols="1.2fr 0.65fr 1.7fr" />
+          <LogTable
+            title="Access Logs"
+            data={ACCESS}
+            cols={["user", "time", "connection"]}
+            headers={["User", "Time", "Connection"]}
+            gridCols="1.2fr 0.65fr 1.7fr"
+          />
+          <LogTable
+            title="Endpoint Logs"
+            data={ENDPOINT}
+            cols={["user", "time", "action", "xfer"]}
+            headers={["User", "Time", "Action", "Transfer"]}
+            gridCols="1.1fr 0.55fr 1.2fr 0.8fr"
+          />
+          <LogTable
+            title="VPN Network Logs"
+            data={VPN}
+            cols={["user", "time", "tunnel"]}
+            headers={["User", "Time", "Tunnel"]}
+            gridCols="1.2fr 0.65fr 1.7fr"
+          />
         </div>
 
         {/* BOTTOM ROW */}
