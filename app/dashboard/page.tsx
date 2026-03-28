@@ -1209,7 +1209,7 @@ export default function NeuroBandDashboard() {
         }}
       >
         <div style={{ fontFamily: "'Playfair Display', serif", fontSize: 12, fontWeight: 700, letterSpacing: "0.06em", color: "#f2e4e0", lineHeight: 1.25 }}>
-          Detective<br /><span style={{ color: "#b01218" }}>Agency</span>
+          Supari<br /><span style={{ color: "#b01218" }}>Agency</span>
         </div>
         <div style={{ display: "flex", gap: 28 }}>
           {["HOME", "CASES", "EVIDENCE", "ABOUT"].map((l) => (

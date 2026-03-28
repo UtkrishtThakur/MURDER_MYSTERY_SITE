@@ -28,7 +28,7 @@ function cryptoJsEncrypt(plaintext: string, passphrase: string): string {
 
 // Task 4 secrets (server-only)
 const TASK4_AES_KEY = 'NEUROSPHERE_NB-PROD-41-HF';
-const TASK4_PLAINTEXT = '21:45';
+const TASK4_PLAINTEXT = '21:15';
 
 let cachedCiphertext: string | null = null;
 function getTask4Ciphertext(): string {

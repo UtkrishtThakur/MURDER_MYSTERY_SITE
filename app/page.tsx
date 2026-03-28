@@ -250,7 +250,7 @@ const HTML = `
           <span class="meta-val">72 HRS AGO</span>
         </div>
       </div>
-      <a href="/neuroband-tasks" class="btn-investigate">
+      <a href="/dashboard" class="btn-investigate">
         Investigate
         <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
       </a>
