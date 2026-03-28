@@ -19,7 +19,8 @@ export async function decrypt(input: string): Promise<JWTPayload> {
     const { payload } = await jwtVerify(input, key, {
         algorithms: ["HS256"],
     });
-    return payload;
+
+    return payload as JWTPayload;
 }
 
 export async function getSession() {
