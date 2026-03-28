@@ -1,5 +1,5 @@
 'use client'
-//
+//ts-ignore
 import { useState, useEffect, useRef, useCallback } from "react";
 import { verifyGhostAnswer } from "@/app/lib/verifyGhostAnswer";
 
@@ -68,7 +68,7 @@ const VIDEO_SOURCES = [
     "https://drive.google.com/drive/folders/1BFZ2PN27Ro_kvq2mlYsM9ZYWnq1hMgoN", // Corridor 22:40
 
     // LAB 7 - RECEPTION
-    "https://www.youtube.com/shorts/o1nbk0UWlO8", // Reception 21:10
+    "https://drive.google.com/drive/folders/1cyPF3AezE39SwypijT-IIHAFyHI4OHMJ", // Reception 21:10
     "https://www.youtube.com/shorts/2hY_qVKK5OM", // Reception 21:40
     "https://drive.google.com/drive/folders/1ojkjeF8b0xRQpAggHmCZWmyfjD0i8Th7", // Reception 22:10
     "https://www.youtube.com/shorts/rKWMzbS2zU8", // Reception 22:40
@@ -81,21 +81,33 @@ const VIDEO_SOURCES = [
 
     // LAB 7 - VENTILATION
     "https://www.youtube.com/shorts/pztqknNW7-k",      // Ventilation 21:10
-    "https://drive.google.com/drive/folders/15VEjn4Fm2n1pMqVSXr7OBLK96Iq8v7Va",      // Ventilation 21:40
+    "https://www.youtube.com/shorts/HDDCtBhuzgc",      // Ventilation 21:40
     "https://drive.google.com/drive/folders/1Pyedd2ObeMsHWqOxg-i5rWoo_qMO8Wf1",      // Ventilation 22:10
     "https://www.youtube.com/shorts/UTVf7eA-q30",      // Ventilation 22:40
 ];
 
-const FEEDS: Feed[] = ZONES.flatMap((z, zi) =>
-    TIME_STEPS.map((t, ti) => ({
-        id: `EX-${zi + 1}${ti + 1}`,
-        cameraName: z,
-        timestamp: `2024-11-24 ${t}:00`,
-        location: z,
-        videoUrl: VIDEO_SOURCES[zi * 4 + ti] || "",
-    }))
-);
+// Fixed "random-looking" order (7 placed in the middle zone)
+const shuffledIds = [
+    13, 2, 19, 4, 23, 1,
+    12, 9, 16, 5, 20, 3,
+    7,  // 🔥 buried in middle
+    14, 11, 8, 24, 6, 10,
+    18, 15, 22, 21, 17
+];
 
+const FEEDS: Feed[] = ZONES.flatMap((z, zi) =>
+    TIME_STEPS.map((t, ti) => {
+        const index = zi * TIME_STEPS.length + ti;
+
+        return {
+            id: `Lab-${shuffledIds[index]}`,
+            cameraName: z,
+            timestamp: `2024-11-24 ${t}:00`,
+            location: z,
+            videoUrl: VIDEO_SOURCES[index] || "",
+        };
+    })
+);
 const TL_EVENTS: TimelineEvent[] = [
     { time: "21:00", event: "BOOT", type: "system", description: "System initialization complete." },
     { time: "21:10", event: "FEED_ON", type: "system", description: "CCTV Feeds activated." },

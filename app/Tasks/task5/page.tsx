@@ -522,7 +522,7 @@ function Task3({ onGhost }: { onGhost: () => void }) {
       </div>
       <div style={{ padding: "12px 16px", borderTop: "1px solid rgba(200,50,50,0.2)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexShrink: 0 }}>
         <div style={{ fontSize: 10, color: "var(--td)", letterSpacing: 1 }}>TASK: Analyse the log entries for anomalous activity</div>
-        <button className="submit-btn" onClick={() => window.open("https://forms.gle/YOUR_FORM_LINK_HERE", "_blank")}>
+        <button className="submit-btn" onClick={() => window.open("https://forms.gle/NaYjMSiJ1Tszv8VJ7", "_blank")}>
           [ SUBMIT ANALYSIS REPORT ]
         </button>
       </div>
